@@ -1,5 +1,5 @@
 <?php
 // Heading
-$_['heading_title']    = 'Extension Skeleton';
+$_['heading_title']    = 'Heading Title';
 
 // Text

@@ -25,38 +25,23 @@
       </div>
       <div class="panel-body">
         <form action="{{ action }}" method="post" enctype="multipart/form-data" id="form-total" class="form-horizontal">
-          {% if extension_status is defined %}
-            <div class="form-group">
-              <label class="col-sm-2 control-label" for="input-status">{{ entry_status }}</label>
-              <div class="col-sm-10">
-                <select name="total_{{ extension_name }}_status" id="input-status" class="form-control">
-                  {% if extension_status %}
-                  <option value="1" selected="selected">{{ text_enabled }}</option>
-                  <option value="0">{{ text_disabled }}</option>
-                  {% else %}
-                  <option value="1">{{ text_enabled }}</option>
-                  <option value="0" selected="selected">{{ text_disabled }}</option>
-                  {% endif %}
-                </select>
-              </div>
-            </div>
-          {% endif %}
-          {% if extension_setting is defined %}
-            {% if extension_setting is iterable %}
-              {% for key, val in extension_setting %}
+          {% for name, setting in extension_settings %}
+            {% set id = extension_id ~ '_' ~ name %}
+            {% if setting is iterable %}
+              {% for key, val in setting %}
                 {% if val is not iterable %}
                   <div class="form-group">
-                    <label class="col-sm-2 control-label" for="input-setting[{{ key }}]">{{ entry_setting }}[{{ key }}]</label>
+                    <label class="col-sm-2 control-label" for="input-{{ id }}[{{ key }}]>{{ entry[name] }}[{{ key }}]</label>
                     <div class="col-sm-10">
-                      <input type="text" name="total_{{ extension_name }}_setting[{{ key }}]" value="{{ val }}" placeholder="{{ entry_setting[key] }}" id="input-setting[{{ key }}]" class="form-control" />
+                      <input type="text" name="{{ id }}[{{ key }}]" value="{{ val }}" placeholder="" id="input-{{ id }}[{{ key }}]" class="form-control" />
                     </div>
                   </div>
                 {% else %}
                   {% for key2, val2 in val %}
                     <div class="form-group">
-                      <label class="col-sm-2 control-label" for="input-setting[{{ key }}][{{ key2 }}]">{{ entry_setting }}[{{ key }}][{{ key2 }}]</label>
+                      <label class="col-sm-2 control-label" for="input-{{ id }}[{{ key }}][{{ key2 }}]">{{ entry[name] }}[{{ key }}][{{ key2 }}]</label>
                       <div class="col-sm-10">
-                        <input type="text" name="total_{{ extension_name }}_setting[{{ key }}][{{ key2 }}]" value="{{ val2 }}" placeholder="{{ entry_setting[key][key2] }}" id="input-setting[{{ key }}][{{ key2 }}]" class="form-control" />
+                        <input type="text" name="{{ id }}[{{ key }}][{{ key }}][{{ key2 }}]" value="{{ val2 }}" placeholder="" id="input-{{ id }}[{{ key }}][{{ key }}][{{ key2 }}]" class="form-control" />
                       </div>
                     </div>
                   {% endfor %}
@@ -64,21 +49,13 @@
               {% endfor %}
             {% else %}
             <div class="form-group">
-              <label class="col-sm-2 control-label" for="input-setting">{{ entry_setting }}</label>
+              <label class="col-sm-2 control-label" for="input-setting">{{ entry[name] }}</label>
               <div class="col-sm-10">
-                <input type="text" name="total_{{ extension_name }}_setting" value="{{ extension_setting }}" placeholder="{{ entry_setting }}" id="input-setting" class="form-control" />
+                <input type="text" name="{{ id }}" value="{{ setting }}" placeholder="{{ entry[name] }}" id="input-{{ id }}" class="form-control" />
               </div>
             </div>
             {% endif %}
-          {% endif %}
-          {% if extension_sort_order is defined %}
-          <div class="form-group">
-            <label class="col-sm-2 control-label" for="input-sort-order">{{ entry_sort_order }}</label>
-            <div class="col-sm-10">
-              <input type="text" name="total_{{ extension_name }}_sort_order" value="{{ extension_sort_order }}" placeholder="{{ entry_sort_order }}" id="input-sort-order" class="form-control" />
-            </div>
-          </div>
-          {% endif %}
+          {% endfor %}
         </form>
       </div>
     </div>
