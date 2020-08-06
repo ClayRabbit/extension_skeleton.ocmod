@@ -28,14 +28,23 @@ class ControllerExtensionModuleExtensionSkeleton extends Controller {
         //$this->load->model($this->route);
     }        
   
-/* 
     public function install() {
+/*
+        if ($this->config->get($this->id . '_status') === null) {
+            $this->model_setting_setting->editSetting($this->id, array(
+                $this->id . '_status' => 0,
+                $this->id . '_sort_order' => '',
+            ));
+        }
+*/
+/*
         if ($this->config->get($this->id . '_setting') === null) {
             $this->model_setting_setting->editSetting($this->id, array($this->id . '_setting' => ''));
             //$this->model_setting_setting->editSettingValue($this->id, $this->id . '_setting', array('key' => 'value'));
         }
+*/
     }
-
+/*
     public function uninstall() {
     }
 */
