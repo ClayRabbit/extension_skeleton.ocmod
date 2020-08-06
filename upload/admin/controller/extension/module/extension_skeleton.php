@@ -6,19 +6,16 @@ class ControllerExtensionModuleExtensionSkeleton extends Controller {
     
     private $route;
     private $id;
+    private $type;
     private $error = array();
 
     public function __construct($registry)
     {
         parent::__construct($registry);
 
-        // Remove DIR_APPLICATION from file path to get route
-        //$this->route = trim(substr(realpath__DIR__, strlen(DIR_APPLICATION)), '/');
-        //
-        // Remove "extension/" prefix and convert rest of the route to id
-        //$this->id = str_replace("/", "_", substr($this->route, 10));
+        $this->type = basename(dirname($this::FILE));
         
-        $this->route = basename(dirname($this::FILE)) . '/' . basename($this::FILE, '.php');
+        $this->route = $this->type . '/' . basename($this::FILE, '.php');
         
         $this->id = str_replace("/", "_", $this->route);
         
@@ -44,13 +41,15 @@ class ControllerExtensionModuleExtensionSkeleton extends Controller {
 */
     public function index() {
         $this->document->setTitle($this->language->get('heading_title'));
+        
+        $back_url = $this->url->link('marketplace/extension', 'user_token=' . $this->session->data['user_token'] . '&type=' . $this->type, true);
 
         if (($this->request->server['REQUEST_METHOD'] == 'POST') && $this->validate()) {
             $this->model_setting_setting->editSetting($this->id, $this->request->post);
 
             $this->session->data['success'] = $this->language->get('text_success');
 
-            $this->response->redirect($this->url->link('marketplace/extension', 'user_token=' . $this->session->data['user_token'] . '&type=total', true));
+            $this->response->redirect($back_url);
         }
 
         if (isset($this->error['warning'])) {
@@ -63,7 +62,7 @@ class ControllerExtensionModuleExtensionSkeleton extends Controller {
 
         $data['action'] = $this->url->link($this->route, 'user_token=' . $this->session->data['user_token'], true);
 
-        $data['cancel'] = $this->url->link('marketplace/extension', 'user_token=' . $this->session->data['user_token'] . '&type=total', true);
+        $data['cancel'] = $back_url;
 
         $data['breadcrumbs'] = array();
 
@@ -74,7 +73,7 @@ class ControllerExtensionModuleExtensionSkeleton extends Controller {
 
         $data['breadcrumbs'][] = array(
             'text' => $this->language->get('text_extension'),
-            'href' => $this->url->link('marketplace/extension', 'user_token=' . $this->session->data['user_token'] . '&type=total', true)
+            'href' => $back_url
         );
 
         $data['breadcrumbs'][] = array(

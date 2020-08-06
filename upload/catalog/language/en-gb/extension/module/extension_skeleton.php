@@ -1,5 +1,5 @@
 <?php
 // Heading
-$_['heading_title']    = 'Heading Title';
+//$_['heading_title']    = 'Heading Title';
 
 // Text
