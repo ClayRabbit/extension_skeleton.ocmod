@@ -1,0 +1,8 @@
+# Ignore everything
+/*
+/*/
+# But not these files...
+!/upload/
+!.gitignore
+!install.xml
+# etc...
