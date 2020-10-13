@@ -29,20 +29,29 @@ class ControllerExtensionModuleExtensionSkeleton extends Controller {
     }        
   
     public function install() {
-/*
+        /*
         if ($this->config->get($this->id . '_status') === null) {
             $this->model_setting_setting->editSetting($this->id, array(
                 $this->id . '_status' => 0,
-                $this->id . '_sort_order' => '',
+                //$this->id . '_sort_order' => '',
+                //$this->id . '_geo_zone_id' => 0,
+                //$this->id . '_tax_class_id' => 0,
             ));
         }
-*/
-/*
+        */
+        /*
         if ($this->config->get($this->id . '_setting') === null) {
             $this->model_setting_setting->editSetting($this->id, array($this->id . '_setting' => ''));
             //$this->model_setting_setting->editSettingValue($this->id, $this->id . '_setting', array('key' => 'value'));
         }
-*/
+        */
+        /*
+        if ($this->config->get($this->id . '_list') === null) {
+            $this->model_setting_setting->editSettingValue($this->id, $this->id . '_list', array(
+                array('column1', 'column2', ),
+            ));
+        }
+        */
     }
 /*
     public function uninstall() {
@@ -51,14 +60,14 @@ class ControllerExtensionModuleExtensionSkeleton extends Controller {
     public function index() {
         $this->document->setTitle($this->language->get('heading_title'));
         
-        $back_url = $this->url->link('marketplace/extension', 'user_token=' . $this->session->data['user_token'] . '&type=' . $this->type, true);
+        $return_url = $this->url->link('marketplace/extension', 'user_token=' . $this->session->data['user_token'] . '&type=' . $this->type, true);
 
         if (($this->request->server['REQUEST_METHOD'] == 'POST') && $this->validate()) {
             $this->model_setting_setting->editSetting($this->id, $this->request->post);
 
             $this->session->data['success'] = $this->language->get('text_success');
 
-            $this->response->redirect($back_url);
+            $this->response->redirect($return_url);
         }
 
         if (isset($this->error['warning'])) {
@@ -71,7 +80,7 @@ class ControllerExtensionModuleExtensionSkeleton extends Controller {
 
         $data['action'] = $this->url->link($this->route, 'user_token=' . $this->session->data['user_token'], true);
 
-        $data['cancel'] = $back_url;
+        $data['cancel'] = $return_url;
 
         $data['breadcrumbs'] = array();
 
@@ -82,7 +91,7 @@ class ControllerExtensionModuleExtensionSkeleton extends Controller {
 
         $data['breadcrumbs'][] = array(
             'text' => $this->language->get('text_extension'),
-            'href' => $back_url
+            'href' => $return_url
         );
 
         $data['breadcrumbs'][] = array(
@@ -97,6 +106,13 @@ class ControllerExtensionModuleExtensionSkeleton extends Controller {
                 if (isset($this->request->post[$key])) {
                     $data['extension_settings'][$setting] = $this->request->post[$key];
                 } else {
+                    if (is_array($value)) {
+                        array_walk_recursive($value, function (&$elem) {
+                            $elem = htmlentities(html_entity_decode($elem, ENT_QUOTES, 'UTF-8'), ENT_QUOTES, 'UTF-8');
+                        });
+                    } else {
+                        $value = htmlentities(html_entity_decode($value, ENT_QUOTES, 'UTF-8'), ENT_QUOTES, 'UTF-8');
+                    }                    
                     $data['extension_settings'][$setting] = $value;
                 }
             }
