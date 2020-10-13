@@ -1,0 +1,18 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<modification>
+  <name>Extension name</name>
+  <version>1.0</version>
+  <code>author-extension</code>
+  <author>Author Name</author>
+  <link>https://opencart.com</link>
+  
+  <!-- This is draft for install.xml file.
+       DELETE IT IF YOU DON'T NEED install.xml FOR YOUR EXTENSION!
+  -->
+  <file path="catalog/controller/extension/module/example.php">
+    <operation>
+      <search><![CDATA[some php code]]></search>
+      <add position="replace"><![CDATA[some new php code]]></add>
+    </operation>
+  </file>
+</modification>
