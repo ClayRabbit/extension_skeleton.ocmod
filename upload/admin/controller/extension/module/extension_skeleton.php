@@ -36,19 +36,23 @@ class ControllerExtensionModuleExtensionSkeleton extends Controller {
                 //$this->id . '_sort_order' => '',
                 //$this->id . '_geo_zone_id' => 0,
                 //$this->id . '_tax_class_id' => 0,
+                //$this->id . '_setting' => array(),
+                //$this->id . '_list' => array(),
             ));
         }
         */
         /*
         if ($this->config->get($this->id . '_setting') === null) {
-            $this->model_setting_setting->editSetting($this->id, array($this->id . '_setting' => ''));
-            //$this->model_setting_setting->editSettingValue($this->id, $this->id . '_setting', array('key' => 'value'));
+            $this->model_setting_setting->editSettingValue($this->id, $this->id . '_setting', array(
+                'param' => 0;
+            ));
         }
         */
         /*
         if ($this->config->get($this->id . '_list') === null) {
             $this->model_setting_setting->editSettingValue($this->id, $this->id . '_list', array(
-                array('column1', 'column2', ),
+                array('column1_name',    'column2_name', ),
+                array('column1_value',   'column2_value', ),
             ));
         }
         */
@@ -100,8 +104,9 @@ class ControllerExtensionModuleExtensionSkeleton extends Controller {
         );
 
 
-        if ($setting = $this->model_setting_setting->getSetting($this->id)) {
-            foreach ($setting as $key => $value) {
+        if ($settings = $this->model_setting_setting->getSetting($this->id)) {
+            $settings = $this->settingSort($settings);
+            foreach ($settings as $key => $value) {
                 $setting = substr($key, strlen($this->id) + 1);
                 if (isset($this->request->post[$key])) {
                     $data['extension_settings'][$setting] = $this->request->post[$key];
@@ -110,12 +115,23 @@ class ControllerExtensionModuleExtensionSkeleton extends Controller {
                         array_walk_recursive($value, function (&$elem) {
                             $elem = htmlentities(html_entity_decode($elem, ENT_QUOTES, 'UTF-8'), ENT_QUOTES, 'UTF-8');
                         });
+					} elseif ($setting == 'status' AND !isset($data['setting_options']['status'])) {
+					        $data['setting_options']['status'] = array($this->language->get('text_disabled'), $this->language->get('text_enabled'));
+					} elseif ($setting == 'geo_zone_id' AND !isset($data['setting_options']['geo_zone_id'])) {
+					        $this->load->model('localisation/geo_zone');
+					        $data['setting_options']['geo_zone_id'] = array('0' => $this->language->get('text_all_zones'))
+								+ array_column($this->model_localisation_geo_zone->getGeoZones(), 'name', 'geo_zone_id');
+					} elseif ($setting == 'tax_class_id' AND !isset($data['setting_options']['tax_class_id'])) {
+					        $this->load->model('localisation/tax_class');
+					        $data['setting_options']['tax_class_id'] = array('0' => $this->language->get('text_none'))
+								+ array_column($this->model_localisation_tax_class->getTaxClasses(), 'title', 'tax_class_id');
                     } else {
                         $value = htmlentities(html_entity_decode($value, ENT_QUOTES, 'UTF-8'), ENT_QUOTES, 'UTF-8');
                     }                    
                     $data['extension_settings'][$setting] = $value;
                 }
             }
+            //$data['setting_options']['on_off_param'] = $data['setting_options']['status'];
         }
 
         $data['header'] = $this->load->controller('common/header');
@@ -131,5 +147,21 @@ class ControllerExtensionModuleExtensionSkeleton extends Controller {
         }
 
         return !$this->error;
+    }
+    
+    private function settingSort($settings = array()){
+		uksort($settings, function ($a, $b) {
+            if (substr($a, -5) == '_list') {
+                return 1;
+            } elseif (substr($b, -5) == '_list') {
+                return -1;
+            } elseif (substr($a, -8) == '_setting') {
+                return 1;
+            } elseif (substr($b, -8) == '_setting') {
+                return -1;
+            }
+            return strcmp($a, $b);
+        });
+        return $settings;
     }
 }
