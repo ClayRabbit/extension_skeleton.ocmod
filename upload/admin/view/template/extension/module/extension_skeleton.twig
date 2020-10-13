@@ -1,3 +1,18 @@
+{% macro input(name, value, type, options) %}
+	{% if options[type] is iterable %}
+              <select name="{{ name }}" id="input-{{ name }}" class="form-control">
+                {% for key, elem in options[type] %}
+                {% if key == value %}
+                <option value="{{ key }}" selected="selected">{{ elem }}</option>
+                {% else %}
+                <option value="{{ key }}">{{ elem }}</option>
+                {% endif %}
+                {% endfor %}
+              </select>
+	{% else %}
+        <input type="text" name="{{ name }}" value="{{ value }}" placeholder="{{ type }}" id="input-{{ name }}" class="form-control" />
+	{% endif %}
+{% endmacro %}
 {{ header }}{{ column_left }}
 <div id="content">
   <div class="page-header">
@@ -27,21 +42,81 @@
         <form action="{{ action }}" method="post" enctype="multipart/form-data" id="form-total" class="form-horizontal">
           {% for name, setting in extension_settings %}
             {% set id = extension_id ~ '_' ~ name %}
-            {% if setting is iterable %}
+			{% if name == "list" %}
+				<style>
+					table#setting_list tr td:last-child button.btn-danger {
+						display: none
+					}
+					table#setting_list tr:last-child td:last-child button.btn-danger {
+						display: inline-block
+					}
+				</style>
+	            <div>
+				  <table id="setting_list" width="100%">
+	              {% for key, val in setting %}
+                    {% if key == 0 %}
+					  <tr>
+						{% for key2, val2 in val %}
+						<th class="text-center" {{ val2 =="sort_order" ? 'style="width:4%"' : '' }}>
+							{{ entry[val2] ?: val2 }}
+							<input type="hidden" name="{{ id }}[{{ key }}][{{ key2 }}]" value="{{ val2 }}" id="input-{{ id }}[{{ key }}][{{ key2 }}]" readonly/>
+						</th>
+						{% endfor %}
+						<th style="padding-left:5px">
+<script>
+function addRow2List() {
+	var elem = $('table#setting_list tr.list').first().clone();
+	elem.appendTo('table#setting_list');
+	var count = $('table#setting_list tr.list').length - 1;
+	$('table#setting_list tr:last-child td .form-control').each(function(i) {
+		if ($(this).attr('id')) {
+			$(this).attr('name', '{{ id }}[' + count + '][' + i + ']');
+			$(this).attr('id', 'input-' + $(this).attr('name'));
+			$(this).attr('value', '');
+			$(this).prop('readonly', false);
+		}
+	});
+	$('table#setting_list tr:last-child').show();
+}
+</script>
+							<button class="btn btn-sm btn-success" onclick="addRow2List(); return false;"><i class="fa fa-plus-circle"></i></button>
+						</th>
+					  </tr>
+					  <tr class="list" style="display: none;">
+					{% else %}
+					  <tr class="list">
+					{% endif %}
+                    {% for key2 in setting[0]|keys %}
+	                  <td>
+						{% if key == 0 %}
+							{{ _self.input('', '', val[key2], setting_options ) }}
+						{% else %}
+							{{ _self.input(id ~ '[' ~ key ~ '][' ~ key2 ~ ']', val[key2], setting[0][key2], setting_options ) }}
+						{% endif %}
+					  </td>
+				    {% endfor %}
+					  <td style="padding-left:5px">
+						<button class="btn btn-sm btn-danger" onclick="$(this).parent().parent().remove();"><i class="fa fa-minus-circle"></i></button>
+					  </td>
+					</tr>
+				  {% endfor %}
+				  </table>
+	            </div>
+            {% elseif setting is iterable %}
               {% for key, val in setting %}
                 {% if val is not iterable %}
                   <div class="form-group">
-                    <label class="col-sm-2 control-label" for="input-{{ id }}[{{ key }}]>{{ entry[name] }}[{{ key }}]</label>
-                    <div class="col-sm-10">
-                      <input type="text" name="{{ id }}[{{ key }}]" value="{{ val }}" placeholder="" id="input-{{ id }}[{{ key }}]" class="form-control" />
+                    <label class="col-sm-3 control-label" for="input-{{ id }}[{{ key }}]">{% if entry[key] %}{{ entry[key] }}{% else %}{{ name }}[{{ key }}]{% endif %}</label>
+                    <div class="col-sm-9">
+					  {{ _self.input(id ~ '[' ~ key ~ ']', val, key, setting_options ) }}
                     </div>
                   </div>
                 {% else %}
                   {% for key2, val2 in val %}
                     <div class="form-group">
-                      <label class="col-sm-2 control-label" for="input-{{ id }}[{{ key }}][{{ key2 }}]">{{ entry[name] }}[{{ key }}][{{ key2 }}]</label>
-                      <div class="col-sm-10">
-                        <input type="text" name="{{ id }}[{{ key }}][{{ key }}][{{ key2 }}]" value="{{ val2 }}" placeholder="" id="input-{{ id }}[{{ key }}][{{ key }}][{{ key2 }}]" class="form-control" />
+                      <label class="col-sm-3 control-label" for="input-{{ id }}[{{ key }}][{{ key2 }}]">{{ entry[key2] ?: name }}[{{ key }}][{{ key2 }}]</label>
+                      <div class="col-sm-9">
+						{{ _self.input(id ~ '[' ~ key ~ '][' ~ key2 ~ ']', val2, key2, setting_options ) }}
                       </div>
                     </div>
                   {% endfor %}
@@ -49,9 +124,9 @@
               {% endfor %}
             {% else %}
             <div class="form-group">
-              <label class="col-sm-2 control-label" for="input-setting">{{ entry[name] }}</label>
-              <div class="col-sm-10">
-                <input type="text" name="{{ id }}" value="{{ setting }}" placeholder="{{ entry[name] }}" id="input-{{ id }}" class="form-control" />
+              <label class="col-sm-3 control-label" for="input-setting">{{ entry[name] ?: name }}</label>
+              <div class="col-sm-9">
+				{{ _self.input(id, setting, name, setting_options ) }}
               </div>
             </div>
             {% endif %}
