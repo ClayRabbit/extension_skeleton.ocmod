@@ -44,7 +44,7 @@ class ControllerExtensionModuleExtensionSkeleton extends Controller {
         /*
         if ($this->config->get($this->id . '_setting') === null) {
             $this->model_setting_setting->editSettingValue($this->id, $this->id . '_setting', array(
-                'param' => 0;
+                'param' => 0,
             ));
         }
         */
@@ -115,15 +115,15 @@ class ControllerExtensionModuleExtensionSkeleton extends Controller {
                         array_walk_recursive($value, function (&$elem) {
                             $elem = htmlentities(html_entity_decode($elem, ENT_QUOTES, 'UTF-8'), ENT_QUOTES, 'UTF-8');
                         });
-					} elseif ($setting == 'status' AND !isset($data['setting_options']['status'])) {
-					        $data['setting_options']['status'] = array($this->language->get('text_disabled'), $this->language->get('text_enabled'));
-					} elseif ($setting == 'geo_zone_id' AND !isset($data['setting_options']['geo_zone_id'])) {
+					} elseif ($setting == 'status' AND !isset($data['setting_options'][$setting])) {
+					        $data['setting_options'][$setting] = array($this->language->get('text_disabled'), $this->language->get('text_enabled'));
+					} elseif ($setting == 'geo_zone_id' AND !isset($data['setting_options'][$setting])) {
 					        $this->load->model('localisation/geo_zone');
-					        $data['setting_options']['geo_zone_id'] = array('0' => $this->language->get('text_all_zones'))
+					        $data['setting_options'][$setting] = array('0' => $this->language->get('text_all_zones'))
 								+ array_column($this->model_localisation_geo_zone->getGeoZones(), 'name', 'geo_zone_id');
-					} elseif ($setting == 'tax_class_id' AND !isset($data['setting_options']['tax_class_id'])) {
+					} elseif ($setting == 'tax_class_id' AND !isset($data['setting_options'][$setting])) {
 					        $this->load->model('localisation/tax_class');
-					        $data['setting_options']['tax_class_id'] = array('0' => $this->language->get('text_none'))
+					        $data['setting_options'][$setting] = array('0' => $this->language->get('text_none'))
 								+ array_column($this->model_localisation_tax_class->getTaxClasses(), 'title', 'tax_class_id');
                     } else {
                         $value = htmlentities(html_entity_decode($value, ENT_QUOTES, 'UTF-8'), ENT_QUOTES, 'UTF-8');
