@@ -11,12 +11,15 @@ class ModelExtensionModuleExtensionSkeleton extends Model {
     {
         parent::__construct($registry);
         
-        $this->route = basename(dirname($this::FILE)) . '/' . basename($this::FILE, '.php');
-        
+        $this->type = basename(dirname($this::FILE));
+        $this->name = basename($this::FILE, '.php');
+        $this->route = $this->type . '/' . $this->name;
         $this->id = str_replace("/", "_", $this->route);
-        
         $this->route = "extension/" . $this->route;
 
+        // Load language and necessary models
+        //$this->load->language($this->route);
+        //$this->load->model($this->route);
         //$this->load->model('setting/setting');
     }
     /* for shipping module
