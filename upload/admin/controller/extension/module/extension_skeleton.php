@@ -3,11 +3,14 @@
 class ControllerExtensionModuleExtensionSkeleton extends Controller {
     
     const FILE = __FILE__;
-    
+    const VERSION = '1.0';
+
     private $route;
     private $id;
     private $type;
     private $error = array();
+    private $data = array();
+    private $token;
 
     public function __construct($registry)
     {
@@ -15,15 +18,28 @@ class ControllerExtensionModuleExtensionSkeleton extends Controller {
 
         $this->type = basename(dirname($this::FILE));
         
-        $this->route = $this->type . '/' . basename($this::FILE, '.php');
-        
-        $this->id = str_replace("/", "_", $this->route);
+        if ((float)VERSION >= 3) {
+            $this->route = $this->type . '/' . basename($this::FILE, '.php');
+            $this->id = str_replace("/", "_", $this->route);
+        } else {
+            $this->id = basename($this::FILE, '.php');
+            $this->route = $this->type . '/' . $this->id;
+        }
         
         $this->route = "extension/" . $this->route;
 
         // Load language and necessary models
-        $this->load->language('common/column_left');
-        $this->load->language($this->route);
+        
+        if ((float)VERSION >= 3) {
+            $this->load->language('common/column_left');
+            $this->load->language($this->route);
+            $this->token = 'user_token';
+        } else {
+            $this->data += $this->load->language('common/column_left');
+            $this->data += $this->load->language($this->route);
+            $this->token = 'token';
+        }
+        
         $this->load->model('setting/setting');
         //$this->load->model($this->route);
     }        
@@ -62,16 +78,35 @@ class ControllerExtensionModuleExtensionSkeleton extends Controller {
     }
 */
     public function index() {
+        $data = $this->data;
+        
         $this->document->setTitle($this->language->get('heading_title'));
         
-        $return_url = $this->url->link('marketplace/extension', 'user_token=' . $this->session->data['user_token'] . '&type=' . $this->type, true);
+        $return_url = $this->url->link(((float)VERSION >= 3 ? 'marketplace' : 'extension') . '/extension', $this->token . '=' . $this->session->data[$this->token] . '&type=' . $this->type, true);
+        
+        $settings = $this->model_setting_setting->getSetting($this->id);
 
         if (($this->request->server['REQUEST_METHOD'] == 'POST') && $this->validate()) {
-            $this->model_setting_setting->editSetting($this->id, $this->request->post);
+            
+            foreach ($this->request->post AS $key => $value) {
+				if (isset($settings[$key])) {
+					$this->model_setting_setting->editSettingValue($this->id, $key, $value);
+				} else {
+					if (!is_array($value)) {
+						$this->db->query("INSERT INTO " . DB_PREFIX . "setting SET store_id = '" . (int)$this->config->get('config_store_id') . "', `code` = '" . $this->db->escape($this->id) . "', `key` = '" . $this->db->escape($key) . "', `value` = '" . $this->db->escape($value) . "'");
+					} else {
+						$this->db->query("INSERT INTO " . DB_PREFIX . "setting SET store_id = '" . (int)$this->config->get('config_store_id') . "', `code` = '" . $this->db->escape($this->id) . "', `key` = '" . $this->db->escape($key) . "', `value` = '" . $this->db->escape(json_encode($value, true)) . "', serialized = '1'");
+					}
+				}
+			}
 
             $this->session->data['success'] = $this->language->get('text_success');
 
-            $this->response->redirect($return_url);
+            if (isset($this->request->post[$this->id . '_status'])) {
+				$this->response->redirect($back_url);
+			} else {
+				$settings = $this->model_setting_setting->getSetting($this->id);
+			}
         }
 
         if (isset($this->error['warning'])) {
@@ -81,8 +116,9 @@ class ControllerExtensionModuleExtensionSkeleton extends Controller {
         }
 
         $data['extension_id'] = $this->id;
+        $data['extension_ver'] = $this::VERSION;
 
-        $data['action'] = $this->url->link($this->route, 'user_token=' . $this->session->data['user_token'], true);
+        $data['action'] = $this->url->link($this->route, $this->token . '=' . $this->session->data[$this->token], true);
 
         $data['cancel'] = $return_url;
 
@@ -90,7 +126,7 @@ class ControllerExtensionModuleExtensionSkeleton extends Controller {
 
         $data['breadcrumbs'][] = array(
             'text' => $this->language->get('text_home'),
-            'href' => $this->url->link('common/dashboard', 'user_token=' . $this->session->data['user_token'], true)
+            'href' => $this->url->link('common/dashboard', $this->token . '=' . $this->session->data[$this->token], true)
         );
 
         $data['breadcrumbs'][] = array(
@@ -103,8 +139,9 @@ class ControllerExtensionModuleExtensionSkeleton extends Controller {
             'href' => $data['action']
         );
 
-
-        if ($settings = $this->model_setting_setting->getSetting($this->id)) {
+        $on_off = array($this->language->get('text_disabled'), $this->language->get('text_enabled'));
+        
+        if ($settings) {
             $settings = $this->settingSort($settings);
             foreach ($settings as $key => $value) {
                 $setting = substr($key, strlen($this->id) + 1);
@@ -116,7 +153,7 @@ class ControllerExtensionModuleExtensionSkeleton extends Controller {
                             $elem = htmlentities(html_entity_decode($elem, ENT_QUOTES, 'UTF-8'), ENT_QUOTES, 'UTF-8');
                         });
 					} elseif ($setting == 'status' AND !isset($data['setting_options'][$setting])) {
-					        $data['setting_options'][$setting] = array($this->language->get('text_disabled'), $this->language->get('text_enabled'));
+					        $data['setting_options'][$setting] = $on_off;
 					} elseif ($setting == 'geo_zone_id' AND !isset($data['setting_options'][$setting])) {
 					        $this->load->model('localisation/geo_zone');
 					        $data['setting_options'][$setting] = array('0' => $this->language->get('text_all_zones'))
@@ -131,7 +168,7 @@ class ControllerExtensionModuleExtensionSkeleton extends Controller {
                     $data['extension_settings'][$setting] = $value;
                 }
             }
-            //$data['setting_options']['on_off_param'] = $data['setting_options']['status'];
+            //$data['setting_options']['on_off_param'] = $on_off;
         }
 
         $data['header'] = $this->load->controller('common/header');

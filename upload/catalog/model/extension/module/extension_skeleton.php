@@ -6,19 +6,28 @@ class ModelExtensionModuleExtensionSkeleton extends Model {
     
     private $route;
     private $id;
+    private $data = array();
     
     public function __construct($registry)
     {
         parent::__construct($registry);
         
-        $this->type = basename(dirname($this::FILE));
-        $this->name = basename($this::FILE, '.php');
-        $this->route = $this->type . '/' . $this->name;
-        $this->id = str_replace("/", "_", $this->route);
+        if ((float)VERSION >= 3) {
+            $this->route = basename(dirname($this::FILE)) . '/' . basename($this::FILE, '.php');
+            $this->id = str_replace("/", "_", $this->route);
+        } else {
+            $this->id = basename($this::FILE, '.php');
+            $this->route = basename(dirname($this::FILE)) . '/' . $this->id;
+        }
         $this->route = "extension/" . $this->route;
 
         // Load language and necessary models
-        //$this->load->language($this->route);
+
+        if ((float)VERSION >= 3) {
+            //$this->load->language($this->route);
+        } else {
+            //$this->data += $this->load->language($this->route);
+        }
         //$this->load->model($this->route);
         //$this->load->model('setting/setting');
     }
@@ -75,10 +84,10 @@ class ModelExtensionModuleExtensionSkeleton extends Model {
     */
     /*
 	public function functionName() {
+        $data = $this->data;
 		$enabled = $this->config->get($this->id . '_status');
         $setting = $this->config->get($this->id . '_setting');
 
-        $this->load->language($this->route);
     }
     */
 }
