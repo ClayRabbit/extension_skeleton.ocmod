@@ -103,7 +103,7 @@ class ControllerExtensionModuleExtensionSkeleton extends Controller {
             $this->session->data['success'] = $this->language->get('text_success');
 
             if (isset($this->request->post[$this->id . '_status'])) {
-				$this->response->redirect($back_url);
+				$this->response->redirect($return_url);
 			} else {
 				$settings = $this->model_setting_setting->getSetting($this->id);
 			}
