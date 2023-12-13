@@ -1,4 +1,8 @@
 <?php
+/**
+ * @author	Andrey Chesnakov
+ * @link	https://clayrabbit.ru
+ */
 
 class ControllerExtensionModuleExtensionSkeleton extends Controller {
     
@@ -6,27 +10,43 @@ class ControllerExtensionModuleExtensionSkeleton extends Controller {
     const VERSION = '1.0';
 
     private $route;
-    private $id;
+    private $name;
     private $type;
     private $error = array();
     private $data = array();
     private $token;
+    private $settings = array(
+        'status' => 0,
+        //'sort_order' => '',
+        //'geo_zone_id' => 0,
+        //'tax_class_id' => 0,
+        //'setting' => array(
+        //),
+        //'list' => array(
+        //),
+    );
 
     public function __construct($registry)
     {
         parent::__construct($registry);
+        
+        if (!isset($this->data)) {
+            $this->data = array();
+        }
 
         $this->type = basename(dirname($this::FILE));
         
         if ((float)VERSION >= 3) {
             $this->route = $this->type . '/' . basename($this::FILE, '.php');
-            $this->id = str_replace("/", "_", $this->route);
+            $this->name = str_replace("/", "_", $this->route);
         } else {
-            $this->id = basename($this::FILE, '.php');
-            $this->route = $this->type . '/' . $this->id;
+            $this->name = basename($this::FILE, '.php');
+            $this->route = $this->type . '/' . $this->name;
         }
         
-        $this->route = "extension/" . $this->route;
+        if ((float)VERSION >= 2.3) {
+            $this->route = "extension/" . $this->route;
+        }
 
         // Load language and necessary models
         
@@ -35,108 +55,130 @@ class ControllerExtensionModuleExtensionSkeleton extends Controller {
             $this->load->language($this->route);
             $this->token = 'user_token';
         } else {
-            $this->data += $this->load->language('common/column_left');
+            if ((float)VERSION >= 2) {
+                $this->data += $this->load->language('common/column_left');
+            }
             $this->data += $this->load->language($this->route);
             $this->token = 'token';
         }
         
         $this->load->model('setting/setting');
         //$this->load->model($this->route);
+        
+        // Load settings and update if new settings found
+        $updated = false;
+        foreach ($this->settings as $key => $value) {
+            $newkey = $this->name . '_' . $key;
+            $this->settings[$newkey] = $this->config->get($newkey);
+            if (is_null($this->settings[$newkey])) {
+                $this->settings[$newkey] = $value;
+                $updated = true;
+            } elseif ($key == 'setting' OR $key == 'list') {
+                foreach (array_keys($value) as $k) {
+                    if (!isset($this->settings[$newkey][$k])) {
+                        $this->settings[$newkey][$k] = $value[$k];
+                        $updated = true;
+                    }
+                }
+            }
+            if ($key == 'list') {
+                foreach (array_keys($this->settings[$newkey]) as $k) {
+                    if (!isset($value[$k])) {
+                        unset($this->settings[$newkey][$k]);
+                        $updated = true;
+                    }
+                }
+            }            
+            unset($this->settings[$key]);
+        }
+        if ($updated) {
+            $this->model_setting_setting->editSetting($this->name, $this->settings);
+        }    
     }        
-  
+/*  
     public function install() {
-        /*
-        if ($this->config->get($this->id . '_status') === null) {
-            $this->model_setting_setting->editSetting($this->id, array(
-                $this->id . '_status' => 0,
-                //$this->id . '_sort_order' => '',
-                //$this->id . '_geo_zone_id' => 0,
-                //$this->id . '_tax_class_id' => 0,
-                //$this->id . '_setting' => array(),
-                //$this->id . '_list' => array(),
-            ));
-        }
-        */
-        /*
-        if ($this->config->get($this->id . '_setting') === null) {
-            $this->model_setting_setting->editSettingValue($this->id, $this->id . '_setting', array(
-                'param' => 0,
-            ));
-        }
-        */
-        /*
-        if ($this->config->get($this->id . '_list') === null) {
-            $this->model_setting_setting->editSettingValue($this->id, $this->id . '_list', array(
-                array('column1_name',    'column2_name', ),
-                array('column1_value',   'column2_value', ),
-            ));
-        }
-        */
+        $this->db->query("CREATE TABLE IF NOT EXISTS `" . DB_PREFIX . "iq_konkurs` (
+          `id` INT(11) NOT NULL AUTO_INCREMENT PRIMARY KEY,
+          `product_id` int NOT NULL,
+          `customer_id` int NOT NULL,
+          `info` varchar(255) NOT NULL
+          `date_added` datetime NOT NULL,
+          `date_modified` datetime NOT NULL,
+        ) DEFAULT CHARSET=utf8;");
     }
+*/
 /*
     public function uninstall() {
     }
 */
     public function index() {
-        $data = $this->data;
-        
         $this->document->setTitle($this->language->get('heading_title'));
         
-        $return_url = $this->url->link(((float)VERSION >= 3 ? 'marketplace' : 'extension') . '/extension', $this->token . '=' . $this->session->data[$this->token] . '&type=' . $this->type, true);
+        if ((float)VERSION >= 3) {
+            $return_route = 'marketplace/extension';
+        } elseif ((float)VERSION >= 2.3) {
+            $return_route = 'extension/extension';
+        } else {
+            $return_route = 'extension/module';
+        }
+        $return_url = $this->url->link($return_route, $this->token . '=' . $this->session->data[$this->token] . '&type=' . $this->type, true);
         
-        $settings = $this->model_setting_setting->getSetting($this->id);
+        $settings = $this->model_setting_setting->getSetting($this->name);
 
         if (($this->request->server['REQUEST_METHOD'] == 'POST') && $this->validate()) {
             
             foreach ($this->request->post AS $key => $value) {
+                if ($key == $this->name . '_list') {
+                    $value = $this->listSort($value);
+                }
 				if (isset($settings[$key])) {
-					$this->model_setting_setting->editSettingValue($this->id, $key, $value);
+					$this->model_setting_setting->editSettingValue($this->name, $key, $value);
 				} else {
 					if (!is_array($value)) {
-						$this->db->query("INSERT INTO " . DB_PREFIX . "setting SET store_id = '" . (int)$this->config->get('config_store_id') . "', `code` = '" . $this->db->escape($this->id) . "', `key` = '" . $this->db->escape($key) . "', `value` = '" . $this->db->escape($value) . "'");
+						$this->db->query("INSERT INTO " . DB_PREFIX . "setting SET store_id = '" . (int)$this->config->get('config_store_id') . "', `code` = '" . $this->db->escape($this->name) . "', `key` = '" . $this->db->escape($key) . "', `value` = '" . $this->db->escape($value) . "'");
 					} else {
-						$this->db->query("INSERT INTO " . DB_PREFIX . "setting SET store_id = '" . (int)$this->config->get('config_store_id') . "', `code` = '" . $this->db->escape($this->id) . "', `key` = '" . $this->db->escape($key) . "', `value` = '" . $this->db->escape(json_encode($value, true)) . "', serialized = '1'");
+						$this->db->query("INSERT INTO " . DB_PREFIX . "setting SET store_id = '" . (int)$this->config->get('config_store_id') . "', `code` = '" . $this->db->escape($this->name) . "', `key` = '" . $this->db->escape($key) . "', `value` = '" . $this->db->escape(json_encode($value, true)) . "', serialized = '1'");
 					}
 				}
 			}
 
             $this->session->data['success'] = $this->language->get('text_success');
 
-            if (isset($this->request->post[$this->id . '_status'])) {
+            if (isset($this->request->post[$this->name . '_status'])) {
 				$this->response->redirect($return_url);
 			} else {
-				$settings = $this->model_setting_setting->getSetting($this->id);
+				$settings = $this->model_setting_setting->getSetting($this->name);
 			}
         }
 
         if (isset($this->error['warning'])) {
-            $data['error_warning'] = $this->error['warning'];
+            $this->data['error_warning'] = $this->error['warning'];
         } else {
-            $data['error_warning'] = '';
+            $this->data['error_warning'] = '';
         }
 
-        $data['extension_id'] = $this->id;
-        $data['extension_ver'] = $this::VERSION;
+        $this->data['extension_id'] = $this->name;
+        $this->data['extension_ver'] = $this::VERSION;
 
-        $data['action'] = $this->url->link($this->route, $this->token . '=' . $this->session->data[$this->token], true);
+        $this->data['action'] = $this->url->link($this->route, $this->token . '=' . $this->session->data[$this->token], true);
 
-        $data['cancel'] = $return_url;
+        $this->data['cancel'] = $return_url;
 
-        $data['breadcrumbs'] = array();
+        $this->data['breadcrumbs'] = array();
 
-        $data['breadcrumbs'][] = array(
+        $this->data['breadcrumbs'][] = array(
             'text' => $this->language->get('text_home'),
             'href' => $this->url->link('common/dashboard', $this->token . '=' . $this->session->data[$this->token], true)
         );
 
-        $data['breadcrumbs'][] = array(
+        $this->data['breadcrumbs'][] = array(
             'text' => $this->language->get('text_extension'),
             'href' => $return_url
         );
 
-        $data['breadcrumbs'][] = array(
+        $this->data['breadcrumbs'][] = array(
             'text' => $this->language->get('heading_title'),
-            'href' => $data['action']
+            'href' => $this->data['action']
         );
 
         $on_off = array($this->language->get('text_disabled'), $this->language->get('text_enabled'));
@@ -144,38 +186,38 @@ class ControllerExtensionModuleExtensionSkeleton extends Controller {
         if ($settings) {
             $settings = $this->settingSort($settings);
             foreach ($settings as $key => $value) {
-                $setting = substr($key, strlen($this->id) + 1);
+                $setting = substr($key, strlen($this->name) + 1);
                 if (isset($this->request->post[$key])) {
-                    $data['extension_settings'][$setting] = $this->request->post[$key];
+                    $this->data['extension_settings'][$setting] = $this->request->post[$key];
                 } else {
                     if (is_array($value)) {
                         array_walk_recursive($value, function (&$elem) {
                             $elem = htmlentities(html_entity_decode($elem, ENT_QUOTES, 'UTF-8'), ENT_QUOTES, 'UTF-8');
                         });
-					} elseif ($setting == 'status' AND !isset($data['setting_options'][$setting])) {
-					        $data['setting_options'][$setting] = $on_off;
-					} elseif ($setting == 'geo_zone_id' AND !isset($data['setting_options'][$setting])) {
+					} elseif ($setting == 'status' AND !isset($this->data['setting_options'][$setting])) {
+					        $this->data['setting_options'][$setting] = $on_off;
+					} elseif ($setting == 'geo_zone_id' AND !isset($this->data['setting_options'][$setting])) {
 					        $this->load->model('localisation/geo_zone');
-					        $data['setting_options'][$setting] = array('0' => $this->language->get('text_all_zones'))
+					        $this->data['setting_options'][$setting] = array('0' => $this->language->get('text_all_zones'))
 								+ array_column($this->model_localisation_geo_zone->getGeoZones(), 'name', 'geo_zone_id');
-					} elseif ($setting == 'tax_class_id' AND !isset($data['setting_options'][$setting])) {
+					} elseif ($setting == 'tax_class_id' AND !isset($this->data['setting_options'][$setting])) {
 					        $this->load->model('localisation/tax_class');
-					        $data['setting_options'][$setting] = array('0' => $this->language->get('text_none'))
+					        $this->data['setting_options'][$setting] = array('0' => $this->language->get('text_none'))
 								+ array_column($this->model_localisation_tax_class->getTaxClasses(), 'title', 'tax_class_id');
                     } else {
                         $value = htmlentities(html_entity_decode($value, ENT_QUOTES, 'UTF-8'), ENT_QUOTES, 'UTF-8');
                     }                    
-                    $data['extension_settings'][$setting] = $value;
+                    $this->data['extension_settings'][$setting] = $value;
                 }
             }
-            //$data['setting_options']['on_off_param'] = $on_off;
+            //$this->data['setting_options']['on_off_param'] = $on_off;
         }
 
-        $data['header'] = $this->load->controller('common/header');
-        $data['column_left'] = $this->load->controller('common/column_left');
-        $data['footer'] = $this->load->controller('common/footer');
+        $this->data['header'] = $this->load->controller('common/header');
+        $this->data['column_left'] = $this->load->controller('common/column_left');
+        $this->data['footer'] = $this->load->controller('common/footer');
 
-        $this->response->setOutput($this->load->view($this->route, $data));
+        $this->response->setOutput($this->load->view($this->route . ((float)VERSION < 2.2 ? '.tpl' : ''), $this->data));
     }
 
     protected function validate() {
@@ -201,4 +243,25 @@ class ControllerExtensionModuleExtensionSkeleton extends Controller {
         });
         return $settings;
     }
+    private function listSort($list = array()){
+        $arr = $args = $result = array();
+        
+        foreach ($list as $name => $column) {
+            $args[] = $column;
+            $args[] = SORT_ASC;
+            for ($i = 0; $i < count($column); $i++) {
+                $arr[$i][$name] = $column[$i];
+            }
+        }
+        $args[] = &$arr;
+        call_user_func_array('array_multisort', $args);
+        
+        for ($i = 0; $i < count($arr); $i++) {
+            foreach ($arr[$i] as $key => $val) {
+                $result[$key][$i] = $val;
+            }
+        }
+        
+        return $result;
+    }    
 }

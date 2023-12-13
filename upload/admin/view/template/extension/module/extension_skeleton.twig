@@ -43,63 +43,46 @@
           {% for name, setting in extension_settings %}
             {% set id = extension_id ~ '_' ~ name %}
 			{% if name == "list" %}
-				<style>
+				<!--style>
 					table#setting_list tr td:last-child button.btn-danger {
 						display: none
 					}
 					table#setting_list tr:last-child td:last-child button.btn-danger {
 						display: inline-block
 					}
-				</style>
+				</style-->
 	            <div>
 				  <table id="setting_list" width="100%">
-	              {% for key, val in setting %}
-                    {% if key == 0 %}
-					  <tr>
-						{% for key2, val2 in val %}
-						<th class="text-center" {{ val2 =="sort_order" ? 'style="width:4%"' : '' }}>
-							{{ entry[val2] ?: val2 }}
-							<input type="hidden" name="{{ id }}[{{ key }}][{{ key2 }}]" value="{{ val2 }}" id="input-{{ id }}[{{ key }}][{{ key2 }}]" readonly/>
+					<tr>
+						{% for key in setting|keys %}
+						<th class="text-center" {{ key =="sort_order" ? 'style="width:4%"' : '' }}>
+							{{ entry[key] ?: key }}
 						</th>
 						{% endfor %}
 						<th style="padding-left:5px">
 <script>
 function addRow2List() {
-	var elem = $('table#setting_list tr.list').first().clone();
+	var elem = $('table#setting_list tr.list').last().clone();
+    elem.find('input').val('');
 	elem.appendTo('table#setting_list');
-	var count = $('table#setting_list tr.list').length - 1;
-	$('table#setting_list tr:last-child td .form-control').each(function(i) {
-		if ($(this).attr('id')) {
-			$(this).attr('name', '{{ id }}[' + count + '][' + i + ']');
-			$(this).attr('id', 'input-' + $(this).attr('name'));
-			$(this).attr('value', '');
-			$(this).prop('readonly', false);
-		}
-	});
-	$('table#setting_list tr:last-child').show();
 }
 </script>
 							<button class="btn btn-sm btn-success" onclick="addRow2List(); return false;"><i class="fa fa-plus-circle"></i></button>
 						</th>
-					  </tr>
-					  <tr class="list" style="display: none;">
-					{% else %}
-					  <tr class="list">
-					{% endif %}
-                    {% for key2 in setting[0]|keys %}
-	                  <td>
-						{% if key == 0 %}
-							{{ _self.input('', '', val[key2], setting_options ) }}
-						{% else %}
-							{{ _self.input(id ~ '[' ~ key ~ '][' ~ key2 ~ ']', val[key2], setting[0][key2], setting_options ) }}
-						{% endif %}
-					  </td>
-				    {% endfor %}
-					  <td style="padding-left:5px">
-						<button class="btn btn-sm btn-danger" onclick="$(this).parent().parent().remove();"><i class="fa fa-minus-circle"></i></button>
-					  </td>
 					</tr>
-				  {% endfor %}
+					<tr class="list" style="display: none;">
+                    {% for row in setting|first|keys %}
+					  <tr class="list">
+                        {% for col in setting|keys %}
+                          <td>
+                            {{ _self.input(id ~ '[' ~ col ~ '][]', setting[col][row], col, setting_options ) }}
+                          </td>
+                        {% endfor %}
+                        <td style="padding-left:5px">
+                          <button class="btn btn-sm btn-danger" onclick="$(this).parent().parent().remove();"><i class="fa fa-minus-circle"></i></button>
+                        </td>
+    				  </tr>
+                    {% endfor %}
 				  </table>
 	            </div>
             {% elseif setting is iterable %}
