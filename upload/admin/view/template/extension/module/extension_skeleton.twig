@@ -1,5 +1,17 @@
 {% macro input(name, value, type, options) %}
 	{% if options[type] is iterable %}
+        {% if value is iterable %}
+            <div style="display:flex; flex-wrap: wrap; gap: 1em;">
+                <!-- {# value|json_encode() #} -->
+                {% for key, elem in options[type] %}
+                    <div class="checkbox">
+                      <label>
+                        <input type="checkbox" name="{{ name }}[]" value="{{ key }}" {{ key in value ? 'checked="checked"' }}>&nbsp;{{ elem }}
+                      </label>
+                    </div>
+                {% endfor %}
+            </div>
+        {% else %}
               <select name="{{ name }}" id="input-{{ name }}" class="form-control">
                 {% for key, elem in options[type] %}
                 {% if key == value %}
@@ -9,6 +21,7 @@
                 {% endif %}
                 {% endfor %}
               </select>
+        {% endif %}
 	{% else %}
         <input type="text" name="{{ name }}" value="{{ value }}" placeholder="{{ type }}" id="input-{{ name }}" class="form-control" />
 	{% endif %}
@@ -29,6 +42,11 @@
     </div>
   </div>
   <div class="container-fluid">
+    {% if success %}
+    <div class="alert alert-success"><i class="fa fa-check-circle"></i> {{ success }}
+        <button type="button" class="close" data-dismiss="alert">&times;</button>
+    </div>
+    {% endif %}
     {% if error_warning %}
     <div class="alert alert-danger alert-dismissible"><i class="fa fa-exclamation-circle"></i> {{ error_warning }}
       <button type="button" class="close" data-dismiss="alert">&times;</button>
@@ -86,8 +104,19 @@ function addRow2List() {
 				  </table>
 	            </div>
             {% elseif setting is iterable %}
+              {% if name == "_setup" %}
+                {% if setup_hide %}
+                  <div class="form-group">
+                    <label class="col-sm-3 control-label"></label>
+                    <div class="col-sm-9">
+                        <button type="button" data-toggle="collapse" data-target="#setup-fields">{{ entry['setup_toggle'] }}</button>
+                    </div>
+                  </div>
+                {% endif %}
+                <div id="setup-fields" class="collapse {{ not setup_hide ? 'in' }}">
+              {% endif %}
               {% for key, val in setting %}
-                {% if val is not iterable %}
+                {% if 1 or val is not iterable %}
                   <div class="form-group">
                     <label class="col-sm-3 control-label" for="input-{{ id }}[{{ key }}]">{% if entry[key] %}{{ entry[key] }}{% else %}{{ name }}[{{ key }}]{% endif %}</label>
                     <div class="col-sm-9">
@@ -105,6 +134,15 @@ function addRow2List() {
                   {% endfor %}
                 {% endif %}
               {% endfor %}
+              {% if name == "_setup" %}
+                  <div class="form-group">
+                    <label class="col-sm-3 control-label"></label>
+                    <div class="col-sm-9">
+                        <button type="submit" name="setup_submit" value="1">{{ entry['setup_submit'] }}</button>
+                    </div>
+                  </div>
+                </div>
+              {% endif %}
             {% else %}
             <div class="form-group">
               <label class="col-sm-3 control-label" for="input-setting">{{ entry[name] ?: name }}</label>
@@ -119,5 +157,5 @@ function addRow2List() {
     </div>
   </div>
 </div>
-<center><b>{{ extension_id }}</b> v<b>{{ extension_ver }}</b> by <a href="mailto:opencart@clayrabbit.ru">Andrey Chesnakov</a> © 2021 (<a target="_blank" href="https://oc.clayrabbit.ru/extensions/{{ extension_id }}/manual.htm">документация</a>)</center>
+<center><b>{{ extension_id }}</b> v<b>{{ extension_ver }}</b> by <a href="https://clayrabbit.ru">Andrey Chesnakov</a> © 2023</center>
 {{ footer }}
